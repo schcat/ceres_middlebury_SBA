@@ -24,15 +24,15 @@ public:
                  const double point_sigma);
     
     
-    int camera_block_size()             const{ return 19;                        }
+    int camera_block_size()             const{ return 11;                        }
     int point_block_size()              const{ return 3;                         }             
     int num_points()                    const{ return num_points_;               }
     int num_parameters()                const{ return num_parameters_;           }
     const double* parameters()          const{ return parameters_;               }
     const double* cameras()             const{ return parameters_;               }
-    const double* points()              const{ return parameters_ + 19;          }
+    const double* points()              const{ return parameters_ + 11;          }
     double* mutable_cameras()                { return parameters_;               }
-    double* mutable_points()                 { return parameters_ + 19;          }
+    double* mutable_points()                 { return parameters_ + 11;          }
 
 private:
     void CameraToAngelAxisAndCenter(const double* camera,

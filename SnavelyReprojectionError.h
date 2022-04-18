@@ -20,12 +20,14 @@ public:
         double predictions[2];
         CamProjectionWithDistortion(camera, point, predictions);
         residuals[0] = predictions[0] - predictions[1]; // y1-y2
+     //   std::cout<<"residuals"<<std::endl;
+     //   std::cout<<residuals[0]<<std::endl;
 
         return true;
     }
 
     static ceres::CostFunction* Create(){
-        return (new ceres::NumericDiffCostFunction<SnavelyReprojectionError,1,19,3>(
+        return (new ceres::NumericDiffCostFunction<SnavelyReprojectionError,ceres::FORWARD,1,11,3>(
             new SnavelyReprojectionError()));
     }
 

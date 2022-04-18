@@ -76,7 +76,8 @@ void BuildProblem(BALProblem* bal_problem, Problem* problem, const BundleParams&
     // [u_1, u_2, ... u_n], where each u_i is two dimensional, the x 
     // and y position of the observation. 
     
-    for(int i = 0; i < bal_problem->num_points(); ++i){
+ //   for(int i = 0; i < bal_problem->num_points(); ++i){
+    for(int i = 0; i < 2500; ++i){
         CostFunction* cost_function;
 
         // Each Residual block takes a point and a camera as input 

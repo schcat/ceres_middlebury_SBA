@@ -34,12 +34,6 @@ void PerturbPoint2(const double sigma, double* point)
     point[i] += RandNormal()*sigma;
 }
 
-void PerturbPoint1(const double sigma, double* point)
-{
-  for(int i = 0; i < 1; ++i)
-    point[i] += RandNormal()*sigma;
-}
-
 double Median(std::vector<double>* data){
   int n = data->size();
   std::vector<double>::iterator mid_point = data->begin() + n/2;
@@ -60,7 +54,7 @@ BALProblem::BALProblem(const std::string& filename, bool use_quaternions){
   // This wil die horribly on invalid files. Them's the breaks.
   FscanfOrDie(fptr, "%d", &num_points_);
 
-  std::cout << "Header: " << num_points_;
+  std::cout << "Header: " << num_points_  << std::endl;
 
   num_parameters_ = 11 + 3 * num_points_;
   parameters_ = new double[num_parameters_];
@@ -150,6 +144,11 @@ void BALProblem::WriteToPLYFile(const std::string& filename)const{
     << '\n' << "property uchar blue"
     << '\n' << "end_header" << std::endl;
 
+    for(int i = 0; i < 11; ++i){
+      const double* camera = cameras();
+      of << camera[i] << '\n';
+    }
+    
     // Export extrinsic data (i.e. camera centers) as green points.
     double angle_axis[3];
     double center[3];
@@ -185,7 +184,7 @@ void BALProblem::CameraToAngelAxisAndCenter(const double* camera,
     // c = -R't
     Eigen::VectorXd inverse_rotation = -angle_axis_ref;
     AngleAxisRotatePoint(inverse_rotation.data(),
-                         camera + camera_block_size() - 6,
+                         camera,
                          center);
     VectorRef(center,3) *= -1.0;
 }
@@ -193,17 +192,17 @@ void BALProblem::CameraToAngelAxisAndCenter(const double* camera,
 void BALProblem::AngleAxisAndCenterToCamera(const double* angle_axis,
                                             const double* center,
                                             double* camera) const{
-    ConstVectorRef angle_axis_ref(angle_axis,3);
+    ConstVectorRef angle_axis_ref(angle_axis, 3);
     if(use_quaternions_){
-      AngleAxisToQuaternion(angle_axis,camera);
+      AngleAxisToQuaternion(angle_axis, camera);
     }
     else{
       VectorRef(camera, 3) = angle_axis_ref;
     }
 
     // t = -R * c 
-    AngleAxisRotatePoint(angle_axis,center,camera+camera_block_size() - 6);
-    VectorRef(camera + camera_block_size() - 6,3) *= -1.0;
+    AngleAxisRotatePoint(angle_axis,center, camera);
+    VectorRef(camera, 3) *= -1.0;
 }
 
 void BALProblem::Normalize(){
@@ -276,6 +275,12 @@ void BALProblem::Perturb(const double rotation_sigma,
      AngleAxisAndCenterToCamera(angle_axis, center,camera);
 
      if(translation_sigma > 0.0)
-        PerturbPoint3(translation_sigma, camera + camera_block_size() - 6);
+        PerturbPoint2(translation_sigma, camera + 3);
+     if(translation_sigma > 0.0)
+        PerturbPoint2(translation_sigma, camera + 5);
+     if(translation_sigma > 0.0)
+        PerturbPoint2(translation_sigma, camera + 7);
+     if(translation_sigma > 0.0)
+        PerturbPoint2(translation_sigma, camera + 9);
    }
 }

@@ -21,10 +21,6 @@
 // point : 3D location.  
 // predictions : 2D predictions with center of the image plane. 
 
-// [11] : baseline 
-// [12-15] : fx, fy, cx, cy of camera1
-// [16-18] : fx, fy, cx of camera2
-
 using namespace cv;
 using namespace std;
 
@@ -80,14 +76,13 @@ inline bool CamProjectionWithDistortion(const double* const camera, const double
     pixel_y[1] = c2_fy * distortion[1] * yp[1] + c2_cy;
     
     // rectification
-    
-    Mat cameraMatrix[2], distCoeffs[2];
     Size imageSize = Size(1920,1080);
     
     Mat cameraMatrix1 = (Mat_<double>(3,3) << c1_fx, 0, c1_cx, 0, c1_fy, c1_cy, 0, 0, 1);
     Mat cameraMatrix2 = (Mat_<double>(3,3) << c2_fx, 0, c2_cx, 0, c2_fy, c2_cy, 0, 0, 1);
-    Mat distCoeffs1 = (Mat_<double>(1, 2) << l1[0], l2[0]);
-	Mat distCoeffs2 = (Mat_<double>(1, 2) << l1[1], l2[1]);
+    
+    Mat distCoeffs1 = (Mat_<double>(1, 4) << l1[0], l2[0], 0, 0);
+	Mat distCoeffs2 = (Mat_<double>(1, 4) << l1[1], l2[1], 0, 0);
     Mat par_R = cv::Mat::zeros(3, 3, CV_64F);
     Mat R1, R2, P1, P2, Q;
 	Mat E, F;
@@ -95,26 +90,36 @@ inline bool CamProjectionWithDistortion(const double* const camera, const double
     Mat vec = (Mat_<double>(1, 3) << camera[0], camera[1], camera[2]);
 	Rodrigues(vec, par_R);
     
-    Mat par_T = (Mat_<double>(1, 3) << baseline, camera[3], camera[4]);
+    Mat par_T = (Mat_<double>(3, 1) << baseline, camera[3], camera[4]);
     
-    stereoRectify(cameraMatrix[0], distCoeffs[0], cameraMatrix[1], distCoeffs[1],
+    stereoRectify(cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2,
                   imageSize, par_R, par_T, R1, R2, P1, P2, Q,
                   CALIB_ZERO_DISPARITY, 1, imageSize);
-                  
+    
     vector<cv::Point2f> c1_point;
     vector<cv::Point2f> c2_point;
     vector<cv::Point2f> c1_point_rect;
     vector<cv::Point2f> c2_point_rect;
     
-    c1_point.push_back(cv::Point2f((float)pixel_x[0], (float)pixel_y[0]));
+    c1_point.push_back(cv::Point2f(pixel_x[0], pixel_y[0]));
     c2_point.push_back(cv::Point2f(pixel_x[1], pixel_y[1]));
     
     undistortPoints(c1_point, c1_point_rect, cameraMatrix1, distCoeffs1, R1, P1);
     undistortPoints(c2_point, c2_point_rect, cameraMatrix2, distCoeffs2, R2, P2);
     
-    predictions[0] = c1_point_rect.front().x;
+    predictions[0] = c1_point_rect.front().y;
     predictions[1] = c2_point_rect.front().y;
-
+/*
+    std::cout<<camera[0]<<std::endl;
+    std::cout<<"point"<<std::endl;
+    std::cout<<point[0]<<std::endl;
+    std::cout<<point[1]<<std::endl;
+    std::cout<<point[2]<<std::endl;
+    std::cout<<"p"<<std::endl;
+    std::cout<<p[0]<<std::endl;
+    std::cout<<p[1]<<std::endl;
+    std::cout<<p[2]<<std::endl;
+    */
     return true;
 }
 
