@@ -1,0 +1,2 @@
+# ceres_middlebury_SBA
+用与middlebury数据集相同的方法，利用3D点投影优化相机参数的SBA程序，使用ceres库
