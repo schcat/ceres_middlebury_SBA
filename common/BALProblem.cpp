@@ -28,6 +28,18 @@ void PerturbPoint3(const double sigma, double* point)
     point[i] += RandNormal()*sigma;
 }
 
+void PerturbPoint2(const double sigma, double* point)
+{
+  for(int i = 0; i < 2; ++i)
+    point[i] += RandNormal()*sigma;
+}
+
+void PerturbPoint1(const double sigma, double* point)
+{
+  for(int i = 0; i < 1; ++i)
+    point[i] += RandNormal()*sigma;
+}
+
 double Median(std::vector<double>* data){
   int n = data->size();
   std::vector<double>::iterator mid_point = data->begin() + n/2;
@@ -46,27 +58,18 @@ BALProblem::BALProblem(const std::string& filename, bool use_quaternions){
   };
 
   // This wil die horribly on invalid files. Them's the breaks.
-  FscanfOrDie(fptr, "%d", &num_cameras_);
   FscanfOrDie(fptr, "%d", &num_points_);
-  FscanfOrDie(fptr, "%d", &num_observations_);
 
-  std::cout << "Header: " << num_cameras_
-            << " " << num_points_
-            << " " << num_observations_;
+  std::cout << "Header: " << num_points_;
 
-  point_index_ = new int[num_observations_];
-  camera_index_ = new int[num_observations_];
-  observations_ = new double[2 * num_observations_];
-
-  num_parameters_ = 9 * num_cameras_ + 3 * num_points_;
+  num_parameters_ = 11 + 3 * num_points_;
   parameters_ = new double[num_parameters_];
+  
+  const_num_parameters_ = 8;
+  const_parameters_ = new double[const_num_parameters_];
 
-  for (int i = 0; i < num_observations_; ++i) {
-    FscanfOrDie(fptr, "%d", camera_index_ + i);
-    FscanfOrDie(fptr, "%d", point_index_ + i);
-    for (int j = 0; j < 2; ++j) {
-      FscanfOrDie(fptr, "%lf", observations_ + 2*i + j);
-    }
+  for (int i = 0; i < 11; ++i) {
+    FscanfOrDie(fptr, "%f", const_parameters_ + i);
   }
 
   for (int i = 0; i < num_parameters_; ++i) {
@@ -78,11 +81,11 @@ BALProblem::BALProblem(const std::string& filename, bool use_quaternions){
   use_quaternions_ = use_quaternions;
   if (use_quaternions) {
     // Switch the angle-axis rotations to quaternions.
-    num_parameters_ = 10 * num_cameras_ + 3 * num_points_;
+    num_parameters_ = 11 + 3 * num_points_;
     double* quaternion_parameters = new double[num_parameters_];
     double* original_cursor = parameters_;
     double* quaternion_cursor = quaternion_parameters;
-    for (int i = 0; i < num_cameras_; ++i) {
+    for (int i = 0; i < 1; ++i) {
       AngleAxisToQuaternion(original_cursor, quaternion_cursor);
       quaternion_cursor += 4;
       original_cursor += 3;
@@ -110,33 +113,25 @@ void BALProblem::WriteToFile(const std::string& filename)const{
     return;
   }
 
-  fprintf(fptr, "%d %d %d %d\n", num_cameras_, num_cameras_, num_points_, num_observations_);
+  fprintf(fptr, "%d\n", num_points_);
 
-  for(int i = 0; i < num_observations_; ++i){
-    fprintf(fptr, "%d %d", camera_index_[i], point_index_[i]);
-    for(int j = 0; j < 2; ++j){
-      fprintf(fptr, " %g", observations_[2*i + j]);
-    }
-    fprintf(fptr,"\n");
-  }
-
-  for(int i = 0; i < num_cameras(); ++i)
+  for(int i = 0; i < 1; ++i)
   {
-    double angleaxis[9];
+    double angleaxis[11];
     if(use_quaternions_){
       //OutPut in angle-axis format.
-      QuaternionToAngleAxis(parameters_ + 10 * i, angleaxis);
-      memcpy(angleaxis + 3, parameters_ + 10 * i + 4, 6 * sizeof(double));
+      QuaternionToAngleAxis(parameters_ + 12 * i, angleaxis);
+      memcpy(angleaxis + 3, parameters_ + 12 * i + 4, 6 * sizeof(double));
     }else{
-      memcpy(angleaxis, parameters_ + 9 * i, 9 * sizeof(double));
+      memcpy(angleaxis, parameters_ + 11 * i, 11 * sizeof(double));
     }
-    for(int j = 0; j < 9; ++j)
+    for(int j = 0; j < 11; ++j)
     {
       fprintf(fptr, "%.16g\n",angleaxis[j]);
     }
   }
 
-  const double* points = parameters_ + camera_block_size() * num_cameras_;
+  const double* points = parameters_ + camera_block_size() * 1;
   for(int i = 0; i < num_points(); ++i){
     const double* point = points + i * point_block_size();
     for(int j = 0; j < point_block_size(); ++j){
@@ -153,7 +148,7 @@ void BALProblem::WriteToPLYFile(const std::string& filename)const{
 
   of<< "ply"
     << '\n' << "format ascii 1.0"
-    << '\n' << "element vertex " << num_cameras_ + num_points_
+    << '\n' << "element vertex " << 1 + num_points_
     << '\n' << "property float x"
     << '\n' << "property float y"
     << '\n' << "property float z"
@@ -165,7 +160,7 @@ void BALProblem::WriteToPLYFile(const std::string& filename)const{
     // Export extrinsic data (i.e. camera centers) as green points.
     double angle_axis[3];
     double center[3];
-    for(int i = 0; i < num_cameras(); ++i){
+    for(int i = 0; i < 1; ++i){
       const double* camera = cameras() + camera_block_size() * i;
       CameraToAngelAxisAndCenter(camera, angle_axis, center);
       of << center[0] << ' ' << center[1] << ' ' << center[2]
@@ -173,7 +168,7 @@ void BALProblem::WriteToPLYFile(const std::string& filename)const{
     }
 
     // Export the structure (i.e. 3D Points) as white points.
-    const double* points = parameters_ + camera_block_size() * num_cameras_;
+    const double* points = parameters_ + camera_block_size() * 1;
     for(int i = 0; i < num_points(); ++i){
       const double* point = points + i * point_block_size();
       for(int j = 0; j < point_block_size(); ++j){
@@ -251,7 +246,7 @@ void BALProblem::Normalize(){
   double* cameras = mutable_cameras();
   double angle_axis[3];
   double center[3];
-  for(int i = 0; i < num_cameras_ ; ++i){
+  for(int i = 0; i < 1 ; ++i){
     double* camera = cameras + camera_block_size() * i;
     CameraToAngelAxisAndCenter(camera, angle_axis, center);
     // center = scale * (center - median)
@@ -274,7 +269,7 @@ void BALProblem::Perturb(const double rotation_sigma,
      }
    }
 
-   for(int i = 0; i < num_cameras_; ++i){
+   for(int i = 0; i < 1; ++i){
      double* camera = mutable_cameras() + camera_block_size() * i;
 
      double angle_axis[3];

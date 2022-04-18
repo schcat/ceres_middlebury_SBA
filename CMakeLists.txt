@@ -4,14 +4,14 @@ project(ceres_customBundle)
 
 find_package(Ceres REQUIRED)
 
+# OpenCV
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_DIRS} )
+
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 set(CMAKE_BUILD_TYPE "Release") 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
-
-# OpenCV
-find_package( OpenCV REQUIRED )
-include_directories( ${OpenCV_DIRS} )
 
 include_directories(${CERES_INCLUDE_DIRS} 
                     ${PROJECT_SOURCE_DIR}/common
