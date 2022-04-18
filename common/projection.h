@@ -28,29 +28,30 @@
 using namespace cv;
 using namespace std;
 
-template<typename T>
-inline bool CamProjectionWithDistortion(const T* camera, const T* point, T* predictions){
+inline bool CamProjectionWithDistortion(const double* const camera, const double* const point, double* predictions){
+    
+    const double baseline = 5.954840;
+    const double c1_fx = 1379.680000;
+    const double c1_fy = 1366.490000;
+    const double c1_cx = 950.286000;
+    const double c1_cy = 536.610000;
+    const double c2_f_ratio = 1379.550000/1365.750000;
+    const double c2_cx = 943.488000;
+    
     // Rodrigues' formula
-    T p[3];
+    double p[3];
     
     AngleAxisRotatePoint(camera, point, p);
     // camera[3,4] are the translation
-    p[0] += camera[11]; p[1] += camera[3]; p[2] += camera[4];
+    p[0] += baseline; p[1] += camera[3]; p[2] += camera[4];
 
     //inner parameters
-    T xp[2], yp[2], l1[2], l2[2], r2[2], distortion[2];
-    T pixel_x[2], pixel_y[2];
+    double xp[2], yp[2], l1[2], l2[2], r2[2], distortion[2];
+    double pixel_x[2], pixel_y[2];
     
-    const T& c1_fx = camera[12];
-    const T& c1_fy = camera[13];
-    const T& c1_cx = camera[14];
-    const T& c1_cy = camera[15];
-    const T& c2_f_ratio = camera[16]/camera[17];
-    const T& c2_cx = camera[18];
-    
-    T c2_fx = camera[7];
-    T c2_fy = camera[7]/c2_f_ratio;
-    T c2_cy = camera[8];
+    double c2_fx = camera[7];
+    double c2_fy = camera[7]/c2_f_ratio;
+    double c2_cy = camera[8];
     
     // Compute the center fo distortion
     xp[0] = -point[0]/point[2];
@@ -67,10 +68,10 @@ inline bool CamProjectionWithDistortion(const T* camera, const T* point, T* pred
     l2[1] = camera[10];
     
     r2[0] = xp[0] * xp[0] + yp[0] * yp[0];
-    distortion[0] = T(1.0) + r2[0] * (l1[0] + l2[0] * r2[0]);
+    distortion[0] = 1.0 + r2[0] * (l1[0] + l2[0] * r2[0]);
 
     r2[1] = xp[1] * xp[1] + yp[1] * yp[1];
-    distortion[1] = T(1.0) + r2[1] * (l1[1] + l2[1] * r2[1]);
+    distortion[1] = 1.0 + r2[1] * (l1[1] + l2[1] * r2[1]);
 
     pixel_x[0] = c1_fx * distortion[0] * xp[0] + c1_cx;
     pixel_y[0] = c1_fy * distortion[0] * yp[0] + c1_cy;
@@ -94,7 +95,7 @@ inline bool CamProjectionWithDistortion(const T* camera, const T* point, T* pred
     Mat vec = (Mat_<double>(1, 3) << camera[0], camera[1], camera[2]);
 	Rodrigues(vec, par_R);
     
-    Mat par_T = (Mat_<double>(1, 3) << camera[11], camera[3], camera[4]);
+    Mat par_T = (Mat_<double>(1, 3) << baseline, camera[3], camera[4]);
     
     stereoRectify(cameraMatrix[0], distCoeffs[0], cameraMatrix[1], distCoeffs[1],
                   imageSize, par_R, par_T, R1, R2, P1, P2, Q,
@@ -105,8 +106,8 @@ inline bool CamProjectionWithDistortion(const T* camera, const T* point, T* pred
     vector<cv::Point2f> c1_point_rect;
     vector<cv::Point2f> c2_point_rect;
     
-    c1_point.push_back(Point2f(pixel_x[0], pixel_y[0]));
-    c2_point.push_back(Point2f(pixel_x[1], pixel_y[1]));
+    c1_point.push_back(cv::Point2f((float)pixel_x[0], (float)pixel_y[0]));
+    c2_point.push_back(cv::Point2f(pixel_x[1], pixel_y[1]));
     
     undistortPoints(c1_point, c1_point_rect, cameraMatrix1, distCoeffs1, R1, P1);
     undistortPoints(c2_point, c2_point_rect, cameraMatrix2, distCoeffs2, R2, P2);
