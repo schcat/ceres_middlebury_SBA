@@ -20,6 +20,9 @@
 // point : 3D location.  
 // predictions : 2D predictions with center of the image plane. 
 
+using namespace cv;
+using namespace std;
+
 template<typename T>
 inline bool CamProjectionWithDistortion(const T* const_parameters, const T* camera, const T* point, T* predictions){
     // Rodrigues' formula
@@ -72,6 +75,35 @@ inline bool CamProjectionWithDistortion(const T* const_parameters, const T* came
     
     // rectification
     
+    Mat cameraMatrix[2], distCoeffs[2];
+    Mat R, T, E, F;
+    
+    cameraMatrix[0].at<double>(0, 0) = c1_fx;
+    cameraMatrix[0].at<double>(1, 1) = c1_fy;
+    cameraMatrix[0].at<double>(0, 2) = c1_cx;
+    cameraMatrix[0].at<double>(1, 2) = c1_cy;
+
+    cameraMatrix[1].at<double>(0, 0) = c2_fx;
+    cameraMatrix[1].at<double>(1, 1) = c2_fy;
+    cameraMatrix[1].at<double>(0, 2) = c2_cx;
+    cameraMatrix[1].at<double>(1, 2) = c2_cy;
+
+    distCoeffs[0].at<double>(0, 0) = -0.0871869;
+    distCoeffs[0].at<double>(0, 1) = 0.0644629;
+    distCoeffs[0].at<double>(0, 2) = 0.00657431;
+    distCoeffs[0].at<double>(0, 3) = -0.00214079;
+    distCoeffs[0].at<double>(0, 4) = -0.0687153;
+
+    distCoeffs[1].at<double>(0, 0) = -0.0912194;
+    distCoeffs[1].at<double>(0, 1) = 0.0967238;
+    distCoeffs[1].at<double>(0, 2) = 0.00276244;
+    distCoeffs[1].at<double>(0, 3) = -0.000855675;
+    distCoeffs[1].at<double>(0, 4) = -0.178871;
+    
+    cv::stereoRectify(cameraMatrix[0], distCoeffs[0],
+                  cameraMatrix[1], distCoeffs[1],
+                  imageSize, R, T, R1, R2, P1, P2, Q,
+                  CALIB_ZERO_DISPARITY, 1, imageSize, &validRoi[0], &validRoi[1]);
     
     predictions[0] = c1_fy * distortion[0] * yp[0] + c1_cy;
     predictions[1] = focal * c2_distortion * c2_yp;

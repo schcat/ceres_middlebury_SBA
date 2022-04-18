@@ -1,12 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(ceres_customBundle)
+project(ceres_middlebury_SBA)
 
 find_package(Ceres REQUIRED)
-
-# OpenCV
-find_package( OpenCV REQUIRED )
-include_directories( ${OpenCV_DIRS} )
+find_package(OpenCV REQUIRED)
 
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
@@ -23,4 +20,4 @@ add_library(ParseCmd SHARED ${PROJECT_SOURCE_DIR}/common/flags/command_args.cpp)
 
 add_executable(${PROJECT_NAME} ceresBundle.cpp)
 
-target_link_libraries(${PROJECT_NAME} BALProblem ParseCmd ${CERES_LIBRARIES} )
+target_link_libraries(${PROJECT_NAME} BALProblem ParseCmd ${CERES_LIBRARIES} ${OpenCV_LIBS})
