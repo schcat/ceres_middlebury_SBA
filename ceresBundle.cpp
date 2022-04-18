@@ -25,7 +25,6 @@ void SetOrdering(BALProblem* bal_problem, ceres::Solver::Options* options, const
     const int point_block_size = bal_problem->point_block_size();
     double* points = bal_problem->mutable_points();
 
-    const int num_cameras = bal_problem->num_cameras();
     const int camera_block_size = bal_problem->camera_block_size();
     double* cameras = bal_problem->mutable_cameras();
 
@@ -40,7 +39,7 @@ void SetOrdering(BALProblem* bal_problem, ceres::Solver::Options* options, const
        ordering->AddElementToGroup(points + point_block_size * i, 0);
        
     
-    for(int i = 0; i < num_cameras; ++i)
+    for(int i = 0; i < 1; ++i)
         ordering->AddElementToGroup(cameras + camera_block_size * i, 1);
 
     options->linear_solver_ordering.reset(ordering);
@@ -72,8 +71,7 @@ void BuildProblem(BALProblem* bal_problem, Problem* problem, const BundleParams&
     const int camera_block_size = bal_problem->camera_block_size();
     double* points = bal_problem->mutable_points();
     double* cameras = bal_problem->mutable_cameras();
-    const double* const_parameters = bal_problem->const_parameters();
-
+    
     // Observations is 2 * num_observations long array observations
     // [u_1, u_2, ... u_n], where each u_i is two dimensional, the x 
     // and y position of the observation. 

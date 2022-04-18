@@ -62,15 +62,8 @@ BALProblem::BALProblem(const std::string& filename, bool use_quaternions){
 
   std::cout << "Header: " << num_points_;
 
-  num_parameters_ = 11 + 3 * num_points_;
+  num_parameters_ = 19 + 3 * num_points_;
   parameters_ = new double[num_parameters_];
-  
-  const_num_parameters_ = 8;
-  const_parameters_ = new double[const_num_parameters_];
-
-  for (int i = 0; i < 11; ++i) {
-    FscanfOrDie(fptr, "%f", const_parameters_ + i);
-  }
 
   for (int i = 0; i < num_parameters_; ++i) {
     FscanfOrDie(fptr, "%lf", parameters_ + i);
@@ -81,7 +74,7 @@ BALProblem::BALProblem(const std::string& filename, bool use_quaternions){
   use_quaternions_ = use_quaternions;
   if (use_quaternions) {
     // Switch the angle-axis rotations to quaternions.
-    num_parameters_ = 11 + 3 * num_points_;
+    num_parameters_ = 19 + 3 * num_points_;
     double* quaternion_parameters = new double[num_parameters_];
     double* original_cursor = parameters_;
     double* quaternion_cursor = quaternion_parameters;
@@ -117,15 +110,15 @@ void BALProblem::WriteToFile(const std::string& filename)const{
 
   for(int i = 0; i < 1; ++i)
   {
-    double angleaxis[11];
+    double angleaxis[19];
     if(use_quaternions_){
       //OutPut in angle-axis format.
-      QuaternionToAngleAxis(parameters_ + 12 * i, angleaxis);
-      memcpy(angleaxis + 3, parameters_ + 12 * i + 4, 6 * sizeof(double));
+      QuaternionToAngleAxis(parameters_ + 20 * i, angleaxis);
+      memcpy(angleaxis + 3, parameters_ + 20 * i + 4, 6 * sizeof(double));
     }else{
-      memcpy(angleaxis, parameters_ + 11 * i, 11 * sizeof(double));
+      memcpy(angleaxis, parameters_ + 19 * i, 19 * sizeof(double));
     }
-    for(int j = 0; j < 11; ++j)
+    for(int j = 0; j < 19; ++j)
     {
       fprintf(fptr, "%.16g\n",angleaxis[j]);
     }

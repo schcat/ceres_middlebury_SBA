@@ -2,7 +2,8 @@
 #define PROJECTION_H
 
 #include "tools/rotation.h"
-#include <opencv2/core/core.hpp>
+#include <opencv2/calib3d.hpp>
+#include <opencv2/opencv.hpp>
 
 // camera : 9 dims array with 
 // [0-2] : angle-axis rotation 
@@ -20,32 +21,36 @@
 // point : 3D location.  
 // predictions : 2D predictions with center of the image plane. 
 
+// [11] : baseline 
+// [12-15] : fx, fy, cx, cy of camera1
+// [16-18] : fx, fy, cx of camera2
+
 using namespace cv;
 using namespace std;
 
 template<typename T>
-inline bool CamProjectionWithDistortion(const T* const_parameters, const T* camera, const T* point, T* predictions){
+inline bool CamProjectionWithDistortion(const T* camera, const T* point, T* predictions){
     // Rodrigues' formula
     T p[3];
     
     AngleAxisRotatePoint(camera, point, p);
     // camera[3,4] are the translation
-    p[0] += const_parameters[0]; p[1] += camera[3]; p[2] += camera[4];
+    p[0] += camera[11]; p[1] += camera[3]; p[2] += camera[4];
 
     //inner parameters
     T xp[2], yp[2], l1[2], l2[2], r2[2], distortion[2];
     T pixel_x[2], pixel_y[2];
     
-    const T& c1_fx = const_parameters[1];
-    const T& c1_fy = const_parameters[2];
-    const T& c1_cx = const_parameters[3];
-    const T& c1_cy = const_parameters[4];
-    const T& c2_f_ratio = const_parameters[5]/const_parameters[6];
-    const T& c2_cx = const_parameters[7];
+    const T& c1_fx = camera[12];
+    const T& c1_fy = camera[13];
+    const T& c1_cx = camera[14];
+    const T& c1_cy = camera[15];
+    const T& c2_f_ratio = camera[16]/camera[17];
+    const T& c2_cx = camera[18];
     
-    T& c2_fx = camera[7];
-    T& c2_fy = camera[7]/c2_f_ratio;
-    T& c2_cy = camera[8];
+    T c2_fx = camera[7];
+    T c2_fy = camera[7]/c2_f_ratio;
+    T c2_cy = camera[8];
     
     // Compute the center fo distortion
     xp[0] = -point[0]/point[2];
@@ -76,37 +81,38 @@ inline bool CamProjectionWithDistortion(const T* const_parameters, const T* came
     // rectification
     
     Mat cameraMatrix[2], distCoeffs[2];
-    Mat R, T, E, F;
+    Size imageSize = Size(1920,1080);
     
-    cameraMatrix[0].at<double>(0, 0) = c1_fx;
-    cameraMatrix[0].at<double>(1, 1) = c1_fy;
-    cameraMatrix[0].at<double>(0, 2) = c1_cx;
-    cameraMatrix[0].at<double>(1, 2) = c1_cy;
-
-    cameraMatrix[1].at<double>(0, 0) = c2_fx;
-    cameraMatrix[1].at<double>(1, 1) = c2_fy;
-    cameraMatrix[1].at<double>(0, 2) = c2_cx;
-    cameraMatrix[1].at<double>(1, 2) = c2_cy;
-
-    distCoeffs[0].at<double>(0, 0) = -0.0871869;
-    distCoeffs[0].at<double>(0, 1) = 0.0644629;
-    distCoeffs[0].at<double>(0, 2) = 0.00657431;
-    distCoeffs[0].at<double>(0, 3) = -0.00214079;
-    distCoeffs[0].at<double>(0, 4) = -0.0687153;
-
-    distCoeffs[1].at<double>(0, 0) = -0.0912194;
-    distCoeffs[1].at<double>(0, 1) = 0.0967238;
-    distCoeffs[1].at<double>(0, 2) = 0.00276244;
-    distCoeffs[1].at<double>(0, 3) = -0.000855675;
-    distCoeffs[1].at<double>(0, 4) = -0.178871;
+    Mat cameraMatrix1 = (Mat_<double>(3,3) << c1_fx, 0, c1_cx, 0, c1_fy, c1_cy, 0, 0, 1);
+    Mat cameraMatrix2 = (Mat_<double>(3,3) << c2_fx, 0, c2_cx, 0, c2_fy, c2_cy, 0, 0, 1);
+    Mat distCoeffs1 = (Mat_<double>(1, 2) << l1[0], l2[0]);
+	Mat distCoeffs2 = (Mat_<double>(1, 2) << l1[1], l2[1]);
+    Mat par_R = cv::Mat::zeros(3, 3, CV_64F);
+    Mat R1, R2, P1, P2, Q;
+	Mat E, F;
     
-    cv::stereoRectify(cameraMatrix[0], distCoeffs[0],
-                  cameraMatrix[1], distCoeffs[1],
-                  imageSize, R, T, R1, R2, P1, P2, Q,
-                  CALIB_ZERO_DISPARITY, 1, imageSize, &validRoi[0], &validRoi[1]);
+    Mat vec = (Mat_<double>(1, 3) << camera[0], camera[1], camera[2]);
+	Rodrigues(vec, par_R);
     
-    predictions[0] = c1_fy * distortion[0] * yp[0] + c1_cy;
-    predictions[1] = focal * c2_distortion * c2_yp;
+    Mat par_T = (Mat_<double>(1, 3) << camera[11], camera[3], camera[4]);
+    
+    stereoRectify(cameraMatrix[0], distCoeffs[0], cameraMatrix[1], distCoeffs[1],
+                  imageSize, par_R, par_T, R1, R2, P1, P2, Q,
+                  CALIB_ZERO_DISPARITY, 1, imageSize);
+                  
+    vector<cv::Point2f> c1_point;
+    vector<cv::Point2f> c2_point;
+    vector<cv::Point2f> c1_point_rect;
+    vector<cv::Point2f> c2_point_rect;
+    
+    c1_point.push_back(Point2f(pixel_x[0], pixel_y[0]));
+    c2_point.push_back(Point2f(pixel_x[1], pixel_y[1]));
+    
+    undistortPoints(c1_point, c1_point_rect, cameraMatrix1, distCoeffs1, R1, P1);
+    undistortPoints(c2_point, c2_point_rect, cameraMatrix2, distCoeffs2, R2, P2);
+    
+    predictions[0] = c1_point_rect.front().x;
+    predictions[1] = c2_point_rect.front().y;
 
     return true;
 }
