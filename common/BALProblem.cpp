@@ -61,6 +61,7 @@ BALProblem::BALProblem(const std::string& filename, bool use_quaternions){
 
   for (int i = 0; i < num_parameters_; ++i) {
     FscanfOrDie(fptr, "%lf", parameters_ + i);
+ //   std::cout<<*(parameters_ + i)<<std::endl;
   }
 
   fclose(fptr);
@@ -166,7 +167,7 @@ void BALProblem::WriteToPLYFile(const std::string& filename)const{
       for(int j = 0; j < point_block_size(); ++j){
         of << point[j] << ' ';
       }
-      of << "255 255 255\n";
+      of << "0 255 255\n";
     }
     of.close();
 }

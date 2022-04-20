@@ -33,7 +33,7 @@ inline bool CamProjectionWithDistortion(const double* const camera, const double
     const double c1_cy = 536.610000;
     const double c2_f_ratio = 1379.550000/1365.750000;
     const double c2_cx = 943.488000;
-    
+  //  std::cout<<point[0]<<" "<<point[1]<<" "<<point[2]<<std::endl;
     // Rodrigues' formula
     double p[3];
     
@@ -110,15 +110,18 @@ inline bool CamProjectionWithDistortion(const double* const camera, const double
     predictions[0] = c1_point_rect.front().y;
     predictions[1] = c2_point_rect.front().y;
 /*
-    std::cout<<camera[0]<<std::endl;
     std::cout<<"point"<<std::endl;
     std::cout<<point[0]<<std::endl;
     std::cout<<point[1]<<std::endl;
     std::cout<<point[2]<<std::endl;
-    std::cout<<"p"<<std::endl;
-    std::cout<<p[0]<<std::endl;
-    std::cout<<p[1]<<std::endl;
-    std::cout<<p[2]<<std::endl;
+    std::cout<<xp[0]<<std::endl;
+    std::cout<<yp[0]<<std::endl;
+    std::cout<<xp[1]<<std::endl;
+    std::cout<<yp[1]<<std::endl;
+    std::cout<<r2[0]<<std::endl;
+    std::cout<<r2[1]<<std::endl;
+    std::cout<<distortion[0]<<std::endl;
+    std::cout<<distortion[1]<<std::endl;
     */
     return true;
 }

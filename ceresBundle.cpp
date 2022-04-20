@@ -71,13 +71,12 @@ void BuildProblem(BALProblem* bal_problem, Problem* problem, const BundleParams&
     const int camera_block_size = bal_problem->camera_block_size();
     double* points = bal_problem->mutable_points();
     double* cameras = bal_problem->mutable_cameras();
-    
+  //  std::cout<<*(cameras+11)<<" "<<*(cameras+12)<<std::endl;
     // Observations is 2 * num_observations long array observations
     // [u_1, u_2, ... u_n], where each u_i is two dimensional, the x 
     // and y position of the observation. 
     
- //   for(int i = 0; i < bal_problem->num_points(); ++i){
-    for(int i = 0; i < 2500; ++i){
+    for(int i = 0; i < bal_problem->num_points(); ++i){
         CostFunction* cost_function;
 
         // Each Residual block takes a point and a camera as input 
@@ -116,7 +115,7 @@ void SolveProblem(const char* filename, const BundleParams& params)
     
     // add some noise for the intial value
  //   srand(params.random_seed);
-    bal_problem.Normalize();
+ //   bal_problem.Normalize();
     bal_problem.Perturb(params.rotation_sigma, params.translation_sigma,
                         params.point_sigma);
 
